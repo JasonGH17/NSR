@@ -6,8 +6,7 @@ const (
 )
 
 func main() {
-	db := DB{}
-	_ = db
-	// Add DB commands interface
-	TCP(HOST, PORT)
+	db := DB{make(map[string]string)}
+	var controller = DBC(&db)
+	TCP(HOST, PORT, controller)
 }
