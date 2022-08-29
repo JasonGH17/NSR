@@ -1,6 +1,6 @@
 const net = require('net');
 
-const commands = ['add test testdata ', 'get test '];
+const commands = ['add "test" "testdata"', 'get "test"'];
 
 for (const command in commands) {
 	const s = new net.Socket();
@@ -11,7 +11,7 @@ for (const command in commands) {
 
 	s.on('data', (data) => {
 		data = data.toString('utf-8');
-		console.log(data !== 'Success' ? `${data}\t Command: [${command}]` : '');
+		console.log(`${data}\t Command: [${command}]`);
 	});
 
 	s.on('end', function () {
