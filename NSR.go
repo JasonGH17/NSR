@@ -6,7 +6,7 @@ const (
 )
 
 func main() {
-	db := DB{make(map[string]string)}
+	db := initDB()
 	var controller = DBC(&db)
 	TCP(HOST, PORT, controller)
 }
