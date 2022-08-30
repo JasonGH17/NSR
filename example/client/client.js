@@ -1,6 +1,6 @@
 const net = require('net');
 
-const commands = ['add "test" "testdata"', 'get "test"'];
+const commands = ['get "schema1" "test"', 'get "schema2" "testsc2"', 'get "schema2" "test2"'];
 
 for (const command in commands) {
 	const s = new net.Socket();

@@ -2,17 +2,18 @@ package main
 
 import (
 	"encoding/gob"
+	"fmt"
 	"os"
 	"sync"
 )
 
 var lock sync.Mutex
 
-func Save(data map[string]string) error {
+func Save(path string, collection string, data map[string]string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	file, err := os.Create("./data/data.bin")
+	file, err := os.Create(fmt.Sprintf("%s/%s.bin", path, collection))
 	if err != nil {
 		return err
 	}
@@ -27,54 +28,40 @@ func Save(data map[string]string) error {
 	return nil
 }
 
-func Load(data *map[string]string) error {
+func Load(path string, data *map[string]map[string]string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	file, err := os.Open("./data/data.bin")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	
-	dec := gob.NewDecoder(file)
-	return dec.Decode(data)
-}
-
-/*
-func unmarshal(reader io.Reader, data *interface{}) error {
-	return json.NewDecoder(reader).Decode(data)
-}
-
-func Save(path string, data interface{}) error {
-	lock.Lock()
-	defer lock.Unlock()
-
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	reader, err := marshal(data)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return err
 	}
 
-	_, err = io.Copy(file, reader)
-	return err
-}
+	for _, ifile := range files {
+		if !ifile.IsDir() {
+			ifile.Info()
+			name := ifile.Name()[:len(ifile.Name())-4]
 
-func Load(path string, data *interface{}) error {
-	lock.Lock()
-	defer lock.Unlock()
+			fmt.Printf("Loading Collection: %s/%s.bin\n", path, name)
+			file, err := os.Open(fmt.Sprintf("%s/%s.bin", path, name))
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 
-	file, err := os.Open(path)
-	if err != nil {
-		return err
+			buff := make(map[string]string)
+
+			dec := gob.NewDecoder(file)
+			err = dec.Decode(&buff)
+			if err != nil {
+				return err
+			}
+
+			(*data)[name] = buff
+		} else {
+			continue
+		}
 	}
-	defer file.Close()
 
-	return unmarshal(file, data)
+	return nil
 }
-*/

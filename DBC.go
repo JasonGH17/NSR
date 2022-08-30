@@ -50,20 +50,22 @@ func DBC(db *DB) func(net.Conn, []byte) {
 				} else {
 					switch string(stack) {
 					case "add":
-						n1 := assertData(conn, parse(i))
-						n2 := assertData(conn, parse(i))
-						if n1 == "" || n2 == "" {
+						collection := assertData(conn, parse(i))
+						key := assertData(conn, parse(i))
+						value := assertData(conn, parse(i))
+						if collection == "" || key == "" || value == "" {
 							break
 						}
-						db.add(n1, n2)
+						db.add(collection, key, value)
 						return "Success"
 
 					case "get":
+						collection := assertData(conn, parse(i))
 						key := assertData(conn, parse(i))
 						if key == "" {
 							break
 						}
-						return db.get(key)
+						return db.get(collection, key)
 
 					default:
 						return string(stack)
