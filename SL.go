@@ -9,18 +9,18 @@ import (
 
 var lock sync.Mutex
 
-func Save(path string, collection string, data map[string]string) error {
+func Save(path string, database *Database, collection string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	file, err := os.Create(fmt.Sprintf("%s/%s.bin", path, collection))
+	file, err := os.Create(fmt.Sprintf("%s/%s/%s.bin", path, database.name, collection))
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
 	enc := gob.NewEncoder(file)
-	err = enc.Encode(data)
+	err = enc.Encode(database.data[collection])
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func Save(path string, collection string, data map[string]string) error {
 	return nil
 }
 
-func Load(path string, data *map[string]map[string]string) error {
+func Load(path string, database *Database) error {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -42,8 +42,8 @@ func Load(path string, data *map[string]map[string]string) error {
 			ifile.Info()
 			name := ifile.Name()[:len(ifile.Name())-4]
 
-			fmt.Printf("Loading Collection: %s/%s.bin\n", path, name)
-			file, err := os.Open(fmt.Sprintf("%s/%s.bin", path, name))
+			fmt.Printf("Loading Collection: %s/%s/%s.bin\n", path, database.name, name)
+			file, err := os.Open(fmt.Sprintf("%s/%s/%s.bin", path, database.name, name))
 			if err != nil {
 				return err
 			}
@@ -57,7 +57,8 @@ func Load(path string, data *map[string]map[string]string) error {
 				return err
 			}
 
-			(*data)[name] = buff
+			(*database).data[name] = buff
+			(*database).collections = append((*database).collections, name)
 		} else {
 			continue
 		}

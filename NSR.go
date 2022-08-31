@@ -7,6 +7,6 @@ const (
 
 func main() {
 	db := initDB()
-	var controller = DBC(&db)
-	TCP(HOST, PORT, controller)
+	var controllers = DBC(&db)
+	TCP(HOST, PORT, controllers)
 }

@@ -1,14 +1,11 @@
 package main
 
-import "net"
+import (
+	"fmt"
+	"net"
+)
 
-func assertData(conn net.Conn, str string) string {
-	if str == "" {
-		conn.Write([]byte("Invalid query"))
-		conn.Close()
-	}
-	return str
-}
+type Controller func(net.Conn, []byte)
 
 func parseString(query string, cursor *int, delim rune) string {
 	stack := []rune{}
@@ -27,8 +24,17 @@ func parseString(query string, cursor *int, delim rune) string {
 	return ""
 }
 
-func DBC(db *DB) func(net.Conn, []byte) {
+func createCtrl(database *Database) Controller {
 	return func(conn net.Conn, buff []byte) {
+		// Data Assertion
+		var assertData = func(str string) string {
+			if str == "" {
+				conn.Write([]byte("Invalid query"))
+				conn.Close()
+			}
+			return str
+		}
+
 		query := string(buff) + " "
 
 		var parse func(i *int) string
@@ -50,22 +56,22 @@ func DBC(db *DB) func(net.Conn, []byte) {
 				} else {
 					switch string(stack) {
 					case "add":
-						collection := assertData(conn, parse(i))
-						key := assertData(conn, parse(i))
-						value := assertData(conn, parse(i))
+						collection := assertData(parse(i))
+						key := assertData(parse(i))
+						value := assertData(parse(i))
 						if collection == "" || key == "" || value == "" {
 							break
 						}
-						db.add(collection, key, value)
+						database.add(collection, key, value)
 						return "Success"
 
 					case "get":
-						collection := assertData(conn, parse(i))
-						key := assertData(conn, parse(i))
+						collection := assertData(parse(i))
+						key := assertData(parse(i))
 						if key == "" {
 							break
 						}
-						return db.get(collection, key)
+						return database.get(collection, key)
 
 					default:
 						return string(stack)
@@ -79,4 +85,71 @@ func DBC(db *DB) func(net.Conn, []byte) {
 		cursor := 0
 		conn.Write([]byte(parse(&cursor)))
 	}
+}
+
+func globalCtrl(db *DB, controllers *map[string]Controller) Controller {
+	return func(conn net.Conn, buff []byte) {
+		var assertData = func(str string) string {
+			if str == "" {
+				conn.Write([]byte("Invalid query"))
+				conn.Close()
+			}
+			return str
+		}
+
+		query := string(buff) + " "
+
+		var parse func(i *int) string
+		parse = func(i *int) string {
+			if *i != 0 {
+				*i++
+			}
+
+			stack := []rune{}
+			for ; *i <= len(query); *i++ {
+				char := rune(query[*i])
+
+				if char != ' ' {
+					if char == '"' || char == rune("'"[0]) {
+						return parseString(query, i, char)
+					}
+
+					stack = append(stack, char)
+				} else {
+					switch string(stack) {
+					case "createDB":
+						database := assertData(parse(i))
+						collection := assertData(parse(i))
+						if database == "" || collection == "" {
+							break
+						}
+						db.createDB(database, collection)
+
+						(*controllers)[database] = createCtrl(&db.databases[db.names[database]])
+
+						return fmt.Sprintf("Created New Database: %s\nCreated New Collection: %s\n", database, collection)
+
+					default:
+						return string(stack)
+					}
+				}
+			}
+			return ""
+		}
+
+		cursor := 0
+		conn.Write([]byte(parse(&cursor)))
+	}
+}
+
+func DBC(db *DB) *map[string]Controller {
+	controllers := make(map[string]Controller)
+
+	controllers["NSR"] = globalCtrl(db, &controllers)
+
+	for _, database := range db.databases {
+		controllers[database.name] = createCtrl(&database)
+	}
+
+	return &controllers
 }
