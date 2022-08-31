@@ -9,8 +9,9 @@ Database server written in Golang
 - [x] Database Controller (Bridges between TCP & Database)
 - [x] Save/Load System
 - [x] Collections (aka. Tables in SQL databases)
-- [ ] Multiple Databases
+- [x] Multiple Databases
 - [ ] Users/Permissions
+- [ ] Database Interface Library for NodeJS
 - [ ] Some Type of Data Relations System
 
 ## FYI
